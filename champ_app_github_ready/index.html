@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Champ – Text-to-Film</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    textarea, select, button, input { width: 100%; margin-top: 10px; padding: 8px; }
+    #output { margin-top: 20px; border: 1px solid #ccc; padding: 10px; background-color: #f9f9f9; max-height: 250px; overflow-y: auto; white-space: pre-wrap; }
+    .toggle { margin-top: 10px; }
+    #timer { margin-top: 10px; font-weight: bold; color: red; }
+    .scene-container { display: flex; flex-wrap: wrap; margin-top: 10px; }
+    .scene-thumbnail { margin: 5px; text-align: center; }
+    .scene-thumbnail img { width: 150px; height: 150px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <!-- Age & Parental Consent -->
+  <div id="ageCheck">
+    <h2>Welcome to Champ – Text-to-Film!</h2>
+    <p>Please enter your age:</p>
+    <input type="number" id="ageInput" min="1" max="12">
+    <button onclick="checkAge()">Submit</button>
+  </div>
+
+  <div id="parentConsent" style="display:none;">
+    <p>Parents: Please confirm you give permission for your child to use Champ.</p>
+    <label><input type="checkbox" id="consentCheck"> I give permission</label>
+    <button onclick="startApp()">Start Using Champ</button>
+  </div>
+
+  <!-- Main App -->
+  <div id="mainApp" style="display:none;">
+    <textarea id="storyInput" placeholder="Write your movie story here..." rows="6"></textarea>
+
+    <!-- Character / Photo -->
+    <div class="toggle">
+      <h3>Put Yourself in the Movie:</h3>
+      <input type="text" id="charName" placeholder="Character Name (e.g., Me!)">
+      <input type="file" id="charImage" accept="image/*">
+      <p>Optional: Upload a photo of yourself to appear in all scenes!</p>
+    </div>
+
+    <div class="toggle">
+      <label>Animation Style: 
+        <select id="styleSelect">
+          <option value="Cartoon">Cartoon</option>
+          <option value="Anime">Anime</option>
+          <option value="3D">3D</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="toggle">
+      <label>Background Music: 
+        <select id="musicSelect">
+          <option value="Adventure Theme">Adventure Theme</option>
+          <option value="Happy Tune">Happy Tune</option>
+          <option value="Epic Music">Epic Music</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="toggle">
+      <label><input type="checkbox" id="premiumToggle"> Premium Mode</label>
+    </div>
+    <div class="toggle">
+      <label><input type="checkbox" id="blackFridayToggle"> Black Friday Mode</label>
+    </div>
+    <div id="timer"></div>
+
+    <button onclick="generateFilm()">Generate Film</button>
+    <button onclick="exportFilm()">Export Movie</button>
+    <button onclick="deleteProject()">Delete Last Project</button>
+
+    <div id="output"></div>
+    <div id="thumbnails" class="scene-container"></div>
+  </div>
+
+  <script>
+    function checkAge() {
+      var age = parseInt(document.getElementById('ageInput').value);
+      if (isNaN(age)) { alert("Please enter a valid age."); return; }
+      if (age > 7) { alert("Sorry, this app is only for children 7 and under."); return; }
+      document.getElementById('ageCheck').style.display = 'none';
+      document.getElementById('parentConsent').style.display = 'block';
+    }
+
+    function startApp() {
+      var consent = document.getElementById('consentCheck').checked;
+      if (!consent) { alert("Parental consent is required."); return; }
+      document.getElementById('parentConsent').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      startAutoSave();
+      loadLastProject();
+    }
+
+    function generateFilm() {
+      var story = document.getElementById('storyInput').value;
+      var isPremium = document.getElementById('premiumToggle').checked;
+      var isBlackFriday = document.getElementById('blackFridayToggle').checked;
+      var style = document.getElementById('styleSelect').value;
+      var music = document.getElementById('musicSelect').value;
+
+      var charName = document.getElementById('charName').value || "Me!";
+      var charImage = document.getElementById('charImage').files[0];
+
+      if (story.trim() === "") { alert("Please write a story first!"); return; }
+
+      if (charImage) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var character = { name: charName, image: e.target.result };
+          startMovieGeneration(story, isPremium, isBlackFriday, style, music, character);
+        };
+        reader.readAsDataURL(charImage);
+      } else {
+        var character = { name: charName, image: null };
+        startMovieGeneration(story, isPremium, isBlackFriday, style, music, character);
+      }
+    }
+
+    function startMovieGeneration(story, isPremium, isBlackFriday, style, music, character) {
+      document.getElementById('output').textContent = "⚡ Champ is starting your movie...
+";
+      document.getElementById('thumbnails').innerHTML = "";
+
+      var sentences = story.split(".");
+      sentences.forEach(function(s, i) {
+        if (s.trim() === "") return;
+        setTimeout(function() {
+          var sceneText = "Scene " + (i+1) + ": " + s.trim() + " (with " + character.name + ").
+";
+          document.getElementById('output').textContent += sceneText + "✨ Animating scene...
+";
+
+          var div = document.createElement("div");
+          div.className = "scene-thumbnail";
+          var img = document.createElement("img");
+          img.src = character.image || "https://media.giphy.com/media/3o7TKtnuHOHHUjR38Y/giphy.gif";
+          div.appendChild(img);
+          var caption = document.createElement("div");
+          caption.textContent = "Scene " + (i+1) + " with " + character.name;
+          div.appendChild(caption);
+          document.getElementById('thumbnails').appendChild(div);
+
+          if (i === sentences.length - 1) {
+            document.getElementById('output').textContent += "
+✅ Movie complete!";
+          }
+        }, i * 400);
+      });
+    }
+
+    function exportFilm() { alert("🎬 Export simulated: Movie preview and GIF thumbnails ready!"); }
+
+    function deleteProject() {
+      if (!confirm("Are you sure you want to delete the last project?")) return;
+      localStorage.removeItem("champLastProject");
+      document.getElementById('storyInput').value = "";
+      document.getElementById('styleSelect').value = "Cartoon";
+      document.getElementById('musicSelect').value = "Adventure Theme";
+      document.getElementById('premiumToggle').checked = false;
+      document.getElementById('blackFridayToggle').checked = false;
+      document.getElementById('charName').value = "";
+      document.getElementById('charImage').value = "";
+      document.getElementById('output').textContent = "";
+      document.getElementById('thumbnails').innerHTML = "";
+      alert("✅ Last project deleted.");
+    }
+
+    function startAutoSave() {
+      setInterval(function() {
+        var charImage = document.getElementById('charImage').files[0];
+        if (charImage) {
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            saveProject(e.target.result);
+          };
+          reader.readAsDataURL(charImage);
+        } else {
+          saveProject(null);
+        }
+      }, 10000);
+    }
+
+    function saveProject(charImageBase64) {
+      var projectData = {
+        story: document.getElementById('storyInput').value,
+        style: document.getElementById('styleSelect').value,
+        music: document.getElementById('musicSelect').value,
+        premium: document.getElementById('premiumToggle').checked,
+        blackFriday: document.getElementById('blackFridayToggle').checked,
+        character: {
+          name: document.getElementById('charName').value || "Me!",
+          image: charImageBase64
+        }
+      };
+      localStorage.setItem("champLastProject", JSON.stringify(projectData));
+    }
+
+    function loadLastProject() {
+      var project = localStorage.getItem("champLastProject");
+      if (!project) return;
+      project = JSON.parse(project);
+      document.getElementById('storyInput').value = project.story || "";
+      document.getElementById('styleSelect').value = project.style || "Cartoon";
+      document.getElementById('musicSelect').value = project.music || "Adventure Theme";
+      document.getElementById('premiumToggle').checked = project.premium || false;
+      document.getElementById('blackFridayToggle').checked = project.blackFriday || false;
+      document.getElementById('charName').value = project.character?.name || "Me!";
+    }
+  </script>
+</body>
+</html>
